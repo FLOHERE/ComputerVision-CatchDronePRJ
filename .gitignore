@@ -1,0 +1,26 @@
+# 데이터와 실행 결과 (용량이 커서 GitHub에 올릴 수 없음)
+datasets/
+runs/
+vdieos/
+videos/
+images/
+
+# 별도 저장소. pip으로 설치해서 사용
+ultralytics/
+
+# 빈 파일
+/test.py
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+
+# macOS
+.DS_Store
+
+#md's
+/보고서.md
+/CLAUDE.md

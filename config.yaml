@@ -1,0 +1,56 @@
+device: auto  # auto | mps | cuda | cpu
+
+detector:
+  weights: yolo11n.pt  # COCO 가중치에는 drone 클래스가 없음. 커스텀 가중치를 받으면 교체
+  imgsz: 960           # 소형 객체 대응. MPS 실측 약 13ms
+  conf: 0.15           # 원거리 드론을 놓치지 않도록 낮게. 오탐은 tracker.min_hits로 거름
+  classes: null        # null이면 전체 클래스. 예: [0]
+
+tracker:
+  min_hits: 5          # 이 횟수만큼 매칭되어야 트랙 확정
+  max_age: 5           # 연속 미탐지 허용 프레임 수
+  gate_min_px: 40.0
+  gate_size_ratio: 1.5
+  edge_margin_px: 1.0  # 화면 경계에서 이 거리 안이면 잘린 박스로 간주
+  kalman:
+    meas_edge_px: 1.0        # bbox 변 하나의 측정 오차 하한
+    meas_edge_ratio: 0.03    # bbox 크기에 비례하는 측정 오차
+    accel_pos_px: 300.0      # 중심 가속도 표준편차 (px/s^2)
+    accel_area_ratio: 8.0    # 면적 가속도 표준편차 (A/s^2)
+    init_speed_px: 300.0     # 초기 중심 속도 표준편차 (px/s)
+    init_area_rate_ratio: 2.0  # 초기 면적 변화율 표준편차 (A/s)
+    truncated_area_scale: 100.0  # 잘린 박스의 면적 측정 표준편차 배율
+    min_closing_scale: 0.5   # 한 프레임 예측에서 남은 거리 비율의 하한
+
+ttc:
+  center_radius: 0.1   # 중앙 영역 반경 (화면 반대각선 대비)
+  converge_eps: 0.1    # 이 값 이하의 dr/dt는 벌어지지 않는 것으로 판단 (반대각선/s)
+
+decision:
+  ttc_threshold_s: 0.5
+
+metrics:
+  csv_dir: runs/aps
+  budget_ms: 30.0
+
+training:
+  dataset_root: datasets
+  base_weights: yolo11n.pt
+  output_weights: weights/drone_yolo11n.pt
+  train_images: 8000       # MPS 학습 시간을 고려한 부분집합. 전체는 약 75000장
+  val_images: 1500         # train 원본에서 분리. Seraphim에는 val 분할이 없음
+  negative_ratio: 0.1      # Seraphim 드론 이미지 수 대비 음성 이미지 비율
+  test_negatives: 2000     # 오탐 측정 전용 음성 이미지 수
+  excluded_coco_categories: [airplane, kite]  # 고정익 드론과 혼동되어 음성으로 쓰지 않음
+  seed: 42
+  epochs: 18
+  patience: 5
+  imgsz: 640               # Seraphim 이미지가 640x640으로 저장되어 있음
+  batch: 16
+  workers: 4
+  eval_conf: 0.25
+  fixedwing:
+    val_ratio: 0.1         # 비행 구간 끝부분을 시간 순으로 val, test에 배정
+    test_ratio: 0.1
+    train_stride: 2        # 연속 프레임이 거의 같으므로 train은 간격을 두고 사용
+    max_side_px: 1280      # 4K 원본은 읽기가 느려 축소. 작은 박스 정보를 위해 학습 크기보다 크게 유지
