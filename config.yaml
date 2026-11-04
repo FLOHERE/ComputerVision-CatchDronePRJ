@@ -1,7 +1,7 @@
 device: auto  # auto | mps | cuda | cpu
 
 detector:
-  weights: yolo11n.pt  # COCO 가중치에는 drone 클래스가 없음. 커스텀 가중치를 받으면 교체
+  weights: weights/drone_yolo11n.pt  # tools/train_detector.py로 학습한 단일 클래스(drone) 가중치. v2·v3는 시험 영상 표적 성능이 나빠 미적용
   imgsz: 960           # 소형 객체 대응. MPS 실측 약 13ms
   conf: 0.15           # 원거리 드론을 놓치지 않도록 낮게. 오탐은 tracker.min_hits로 거름
   classes: null        # null이면 전체 클래스. 예: [0]
@@ -48,9 +48,28 @@ training:
   imgsz: 640               # Seraphim 이미지가 640x640으로 저장되어 있음
   batch: 16
   workers: 4
+  data: datasets/drone/data.yaml
+  optimizer: auto
+  lr0: 0.01                # optimizer가 auto면 ultralytics가 무시함
   eval_conf: 0.25
+  eval_iou: 0.5
+  eval_size_bins_px: [16, 32, 96]  # 박스 √면적 구간. imgsz 640 기준으로 환산한 픽셀
   fixedwing:
     val_ratio: 0.1         # 비행 구간 끝부분을 시간 순으로 val, test에 배정
     test_ratio: 0.1
     train_stride: 2        # 연속 프레임이 거의 같으므로 train은 간격을 두고 사용
     max_side_px: 1280      # 4K 원본은 읽기가 느려 축소. 작은 박스 정보를 위해 학습 크기보다 크게 유지
+  synthetic:
+    test_ratio: 0.1
+    train_limits: {seraphim: 3000, fixedwing: 1000, synth: 3000}  # 1시간 안팎으로 끝나도록 줄임
+  finetune:                # --finetune일 때 위 값을 덮어씀. 입력 960의 오탐을 줄이기 위한 재학습
+    base_weights: weights/drone_yolo11n.pt
+    output_weights: weights/drone_yolo11n_v3.pt
+    data: datasets/drone/data_synth.yaml
+    mine_ratio: 0.5        # 나머지는 conf 조정용으로 남겨 채굴에 쓴 이미지로 오탐률을 재지 않게 함
+    hard_neg_conf: 0.25
+    imgsz: 960             # 파이프라인 입력 크기와 맞춤
+    epochs: 3              # 합성 데이터의 효과를 먼저 확인하는 짧은 학습
+    patience: 3
+    optimizer: AdamW       # auto는 lr0를 무시하므로 직접 지정
+    lr0: 0.0005            # 이미 학습된 가중치라 낮게

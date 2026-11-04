@@ -15,7 +15,7 @@ def test_select_device():
 
 
 def test_yolo_detects_bus_with_class_filter(cfg):
-    detector_cfg = {**cfg["detector"], "weights": str(ROOT / cfg["detector"]["weights"]), "conf": 0.25, "classes": [5]}
+    detector_cfg = {**cfg["detector"], "weights": str(ROOT / cfg["training"]["base_weights"]), "conf": 0.25, "classes": [5]}
     image = cv2.imread(str(ASSETS / "bus.jpg"))
     result = YoloDetector(detector_cfg, select_device("auto")).detect(image)
 

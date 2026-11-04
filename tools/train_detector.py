@@ -24,17 +24,22 @@ def main():
     p.add_argument("--epochs", type=int, help="config의 epochs 대신 사용")
     p.add_argument("--data", help="기본 data.yaml 대신 사용")
     p.add_argument("--name", default="drone", help="runs/train 아래 실행 이름")
+    p.add_argument("--finetune", action="store_true", help="training.finetune 설정으로 재학습")
     args = p.parse_args()
 
     cfg = yaml.safe_load(Path(args.config).read_text(encoding="utf-8"))
     training = cfg["training"]
+    if args.finetune:
+        training = {**training, **training["finetune"]}
     model = YOLO(training["base_weights"])
     results = model.train(
-        data=args.data or str(Path(training["dataset_root"]) / "drone" / "data.yaml"),
+        data=args.data or training["data"],
         epochs=args.epochs or training["epochs"],
         patience=training["patience"],
         imgsz=training["imgsz"],
         batch=training["batch"],
+        optimizer=training["optimizer"],
+        lr0=training["lr0"],
         workers=training["workers"],
         seed=training["seed"],
         device=select_device(cfg["device"]),
