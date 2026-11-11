@@ -3,6 +3,7 @@
 
 사용법:
     python tools/train_detector.py [--data 작은.yaml --epochs 1]  # 뒤의 두 옵션은 동작 확인용
+    python tools/train_detector.py --finetune finetune_yarenk --name drone_v4
 """
 
 import argparse
@@ -24,13 +25,13 @@ def main():
     p.add_argument("--epochs", type=int, help="config의 epochs 대신 사용")
     p.add_argument("--data", help="기본 data.yaml 대신 사용")
     p.add_argument("--name", default="drone", help="runs/train 아래 실행 이름")
-    p.add_argument("--finetune", action="store_true", help="training.finetune 설정으로 재학습")
+    p.add_argument("--finetune", nargs="?", const="finetune", help="training.<이름> 설정으로 재학습 (기본 finetune)")
     args = p.parse_args()
 
     cfg = yaml.safe_load(Path(args.config).read_text(encoding="utf-8"))
     training = cfg["training"]
     if args.finetune:
-        training = {**training, **training["finetune"]}
+        training = {**training, **training[args.finetune]}
     model = YOLO(training["base_weights"])
     results = model.train(
         data=args.data or training["data"],

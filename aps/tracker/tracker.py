@@ -57,6 +57,8 @@ class Tracker:
         self._tracks = [track for track in self._tracks if track.missed <= self.cfg["max_age"]]
 
         for det in unmatched:
+            if det.conf < self.cfg["new_track_conf"]:
+                continue
             truncated = self._is_truncated(det, frame_shape)
             self._tracks.append(_TrackState(next(self._next_id), det, self.cfg["kalman"], truncated))
 
@@ -68,7 +70,11 @@ class Tracker:
         candidates = []
         for ti, track in enumerate(self._tracks):
             gate = max(self.cfg["gate_min_px"], self.cfg["gate_size_ratio"] * np.sqrt(max(track.kf.x[2], 0.0)))
+            confirmed = track.hits >= self.cfg["min_hits"]
             for di, det in enumerate(detections):
+                # 저신뢰 박스는 확정 트랙을 이어가는 데만 쓴다 (ByteTrack 방식). 미확정 트랙에 쓰면 잡음이 확정됨
+                if not confirmed and det.conf < self.cfg["new_track_conf"]:
+                    continue
                 z = _measurement(det)
                 distance = float(np.hypot(*(z[:2] - track.kf.x[:2])))
                 if distance <= gate:

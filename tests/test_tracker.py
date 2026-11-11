@@ -70,3 +70,25 @@ def test_rejects_non_increasing_time(cfg):
     tracker.update([], 1.0, FRAME_SHAPE)
     with pytest.raises(ValueError):
         tracker.update([], 1.0, FRAME_SHAPE)
+
+
+def low(cx, cy, size=20.0):
+    return Detection((cx - size / 2, cy - size / 2, cx + size / 2, cy + size / 2), 0.07, 0)
+
+
+def test_low_conf_box_never_starts_track(cfg):
+    tracker = Tracker(cfg["tracker"])
+    for i in range(cfg["tracker"]["min_hits"] * 3):
+        assert tracker.update([low(300 + i, 300)], i / FPS, FRAME_SHAPE) == []
+
+
+def test_low_conf_box_keeps_confirmed_track(cfg):
+    tracker = Tracker(cfg["tracker"])
+    n = cfg["tracker"]["min_hits"]
+    for i in range(n):
+        tracks = tracker.update([box(300 + i, 300)], i / FPS, FRAME_SHAPE)
+    track_id = tracks[0].track_id
+    # max_age보다 길게 저신뢰 박스만 들어와도 같은 트랙이 유지되어야 함
+    for i in range(n, n + cfg["tracker"]["max_age"] * 3):
+        tracks = tracker.update([low(300 + i, 300)], i / FPS, FRAME_SHAPE)
+        assert [t.track_id for t in tracks] == [track_id] and tracks[0].missed == 0

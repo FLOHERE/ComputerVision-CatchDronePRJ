@@ -17,6 +17,7 @@ import yaml
 from aps.detector.yolo import YoloDetector
 from aps.device import select_device
 from aps.fc_link.mock import MockFcLink
+from aps.io.osd import OsdOverlaySource, OverlayFilterDetector
 from aps.io.overlay import draw_overlay
 from aps.io.sources import open_source
 from aps.metrics import LatencyLogger
@@ -39,6 +40,9 @@ def main():
     device = select_device(cfg["device"])
     source = open_source(args.source)
     detector = YoloDetector(cfg["detector"], device)
+    if cfg["osd"]["enabled"]:
+        source = OsdOverlaySource(source, cfg["osd"])
+        detector = OverlayFilterDetector(detector, source, cfg["osd"]["max_overlap"])
     csv_path = Path(cfg["metrics"]["csv_dir"]) / f"latency_{datetime.now():%Y%m%d_%H%M%S}.csv"
     metrics = LatencyLogger(csv_path, device, cfg["detector"]["imgsz"], cfg["metrics"]["budget_ms"])
 

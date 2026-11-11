@@ -137,6 +137,10 @@ def main():
         results[str(imgsz)] = {
             "test": evaluate_positive(model, "test", data_dir, out_dir, imgsz, device, training),
             "test_fixedwing": evaluate_positive(model, "test_fixedwing", data_dir, out_dir, imgsz, device, training),
+            **{  # prepare_yarenk.py를 실행한 경우에만 있음
+                name: evaluate_positive(model, name, data_dir, out_dir, imgsz, device, training)
+                for name in ["test_yarenk"] if (data_dir / f"{name}.txt").exists()
+            },
             "test_negatives": evaluate_negative(
                 model, data_dir, imgsz, device, training, sorted({cfg["detector"]["conf"], training["eval_conf"]})
             ),

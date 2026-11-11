@@ -3,11 +3,12 @@ device: auto  # auto | mps | cuda | cpu
 detector:
   weights: weights/drone_yolo11n.pt  # tools/train_detector.py로 학습한 단일 클래스(drone) 가중치. v2·v3는 시험 영상 표적 성능이 나빠 미적용
   imgsz: 960           # 소형 객체 대응. MPS 실측 약 13ms
-  conf: 0.15           # 원거리 드론을 놓치지 않도록 낮게. 오탐은 tracker.min_hits로 거름
+  conf: 0.05           # 확정 트랙을 이어가는 최소 신뢰도. 새 트랙은 tracker.new_track_conf 이상만 시작
   classes: null        # null이면 전체 클래스. 예: [0]
 
 tracker:
   min_hits: 5          # 이 횟수만큼 매칭되어야 트랙 확정
+  new_track_conf: 0.15 # 새 트랙 시작·미확정 트랙 매칭에 필요한 신뢰도. 오탐은 min_hits로 거름
   max_age: 5           # 연속 미탐지 허용 프레임 수
   gate_min_px: 40.0
   gate_size_ratio: 1.5
@@ -21,6 +22,22 @@ tracker:
     init_area_rate_ratio: 2.0  # 초기 면적 변화율 표준편차 (A/s)
     truncated_area_scale: 100.0  # 잘린 박스의 면적 측정 표준편차 배율
     min_closing_scale: 0.5   # 한 프레임 예측에서 남은 거리 비율의 하한
+
+osd:                   # 화면 고정 오버레이(조준점·글자·로고·자기 기체)에서 나온 탐지를 버림. 영상은 건드리지 않음
+  enabled: true        # OSD가 없는 실기체 카메라에서는 false
+  calib_frames: 60     # 정지 여부를 판단하는 창 (약 2초). 시작 시 이만큼 먼저 읽어 첫 프레임부터 거름
+  sample_every: 2      # 창에 넣을 프레임 간격. 갱신 비용 절반 (1080p에서 약 10ms, 10프레임마다)
+  update_every: 10     # 오버레이 영역을 다시 만드는 주기 (프레임). 중간에 뜨는 자막·로고 대응
+  work_height: 360     # 통계를 계산할 축소 영상 높이 (px). 프레임당 비용 절감
+  stable_tol: 25.0     # 창 평균과 이 차이 안이면 '변하지 않은' 프레임으로 봄 (0~255). 압축 노이즈 허용
+  stable_ratio: 0.9    # 최근 프레임 중 이 비율 이상 변하지 않으면 정지 픽셀
+  min_contrast: 20.0   # 주변 평균과 이만큼 차이 나야 오버레이로 간주 (0~255). 밋밋한 하늘 배제
+  contrast_kernel: 9   # 주변 평균을 구하는 창 크기 (px)
+  group_ratio: 0.02    # 글자·아이콘 조각을 한 덩어리로 묶는 거리 (화면 높이 대비)
+  region_pad_ratio: 0.005  # 오버레이 사각형에 더하는 여백 (화면 높이 대비)
+  max_region_ratio: 0.2  # 영역이 화면의 이 비율보다 넓고
+  min_moving_ratio: 0.3  # 창에서 변하는 픽셀도 이 비율 미만이면 카메라가 멈춘 구간으로 보고 무시(이전 영역 유지). 002 멈춤 구간 0.06~0.16, 005 정상 구간 0.2~0.88
+  max_overlap: 0.5     # 박스 면적의 이 비율 이상이 오버레이 영역이면 탐지를 버림. 조준점과 겹친 표적 박스는 남김
 
 ttc:
   center_radius: 0.1   # 중앙 영역 반경 (화면 반대각선 대비)
@@ -73,3 +90,15 @@ training:
     patience: 3
     optimizer: AdamW       # auto는 lr0를 무시하므로 직접 지정
     lr0: 0.0005            # 이미 학습된 가중치라 낮게
+  yarenk:                  # tools/prepare_yarenk.py. 공대공 고정익 데이터(CC BY 4.0)로 002.mp4 같은 근접 표적 보강
+    test_ratio: 0.1        # 원본 이름 단위로 분리 (증강 사본 3장이 한쪽에만 들어가게)
+    train_limits: {seraphim: 3000, fixedwing: 1000, yarenk: 6000}  # 기존 소형 드론 성능을 잃지 않도록 seraphim도 섞음
+  finetune_yarenk:         # --finetune finetune_yarenk일 때 위 값을 덮어씀
+    base_weights: weights/drone_yolo11n.pt
+    output_weights: weights/drone_yolo11n_v4.pt
+    data: datasets/drone/data_yarenk.yaml
+    imgsz: 640             # v3(960 재학습)은 시험 영상 성능이 나빴으므로 v1 학습 크기 유지
+    epochs: 5
+    patience: 3
+    optimizer: AdamW
+    lr0: 0.0005
