@@ -102,3 +102,21 @@ training:
     patience: 3
     optimizer: AdamW
     lr0: 0.0005
+
+catch:                 # aps/catch: 그물 발사 애니메이션 시뮬레이션. 기존 파이프라인과 독립 (보고서 9주차 2-3~2-5 설계값)
+  fov_deg: 66.0        # 가로 화각. 박스 폭으로 거리를 추정하고 그물 크기를 그릴 때만 사용
+  target_size_m: 0.3   # 7인치 FPV 대각 크기. 거리 추정용
+  fire_ttc_s: 0.55     # 발사 임계 TTC (0.5 + 시스템 지연 0.05)
+  max_offcenter_deg: 6.6  # 표적이 화면 중심에서 이만큼 이내여야 발사
+  min_frames: 3        # 위 조건이 연속 이 프레임 유지되어야 발사
+  latency_s: 0.05      # 발사 판단부터 그물이 나가기까지 지연. 그물 도달 시간에서 뺌
+  net_speed_mps: 20.0  # 가정값. 실측 필요
+  net_width_m: 3.0
+  open_dist_m: 4.5     # 이 거리에서 완전히 펴짐
+  show_result_s: 1.0   # 명중/빗나감 표시 시간
+  max_shots: 1         # 그물은 한 발
+
+net_link:              # aps/net_link: 발사 인터페이스(mock). 실기체 구현도 같은 안전 조건을 지킬 것
+  armed: false         # 무장 스위치. false면 모든 발사 요청을 막음
+  min_meet_m: 4.5      # 그물이 만나는 거리가 이보다 가까우면 발사 안 함 (catch.open_dist_m과 같게)
+  max_shots: 1         # 그물은 한 발
