@@ -21,6 +21,5 @@ venv/
 # macOS
 .DS_Store
 
-#md's
-/보고서.md
-/CLAUDE.md
+#docs
+/docs

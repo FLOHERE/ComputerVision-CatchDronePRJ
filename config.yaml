@@ -120,3 +120,9 @@ net_link:              # aps/net_link: 발사 인터페이스(mock). 실기체 �
   armed: false         # 무장 스위치. false면 모든 발사 요청을 막음
   min_meet_m: 4.5      # 그물이 만나는 거리가 이보다 가까우면 발사 안 함 (catch.open_dist_m과 같게)
   max_shots: 1         # 그물은 한 발
+
+fc_link:               # aps/fc_link: 비행제어 연동(MAVLink). mock 구현은 연결 없이 로그만
+  connection_string: "udp:127.0.0.1:14550"  # SITL 기본 주소. 실기체는 serial:/dev/ttyAMA0:57600 등
+  evade_vz_mps: 3.0    # 상승 회피 속도 (m/s, NED 좌표계에서 음수=상승)
+  evade_duration_s: 1.0  # 회피 명령 지속 시간 (초)
+  timeout_s: 5.0       # MAVLink 연결·명령 타임아웃
